@@ -6,10 +6,12 @@ import com.example.urlshotener.application.port.out.ShortUrlRepository;
 import com.example.urlshotener.domain.model.OriginalUrl;
 import com.example.urlshotener.domain.model.ShortCode;
 import com.example.urlshotener.domain.model.ShortUrl;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@Service
 public class ShortenUrlService implements ShortenUrlUseCase {
     private final ShortUrlRepository repository;
     private final ShortCodeGenerator generator;

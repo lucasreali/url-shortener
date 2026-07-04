@@ -2,9 +2,11 @@ package com.example.urlshotener.infrastructure.adapter.out.generator;
 
 import com.example.urlshotener.application.port.out.ShortCodeGenerator;
 import com.example.urlshotener.domain.model.ShortCode;
+import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 
+@Component
 public class RandomShortCodeGenerator implements ShortCodeGenerator {
 
     @Override
