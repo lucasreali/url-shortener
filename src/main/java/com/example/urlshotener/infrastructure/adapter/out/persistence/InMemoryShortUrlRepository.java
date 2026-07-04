@@ -6,6 +6,7 @@ import com.example.urlshotener.domain.model.ShortUrl;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 @Component
 public class InMemoryShortUrlRepository implements ShortUrlRepository {
@@ -15,5 +16,10 @@ public class InMemoryShortUrlRepository implements ShortUrlRepository {
     public ShortUrl add(ShortUrl shortUrl) {
         shortUrlsByCode.put(shortUrl.shortCode(), shortUrl);
         return shortUrl;
+    }
+
+    @Override
+    public Optional<ShortUrl> find(ShortCode shortCode) {
+        return Optional.ofNullable(shortUrlsByCode.get(shortCode));
     }
 }
