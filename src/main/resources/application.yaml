@@ -1,6 +1,6 @@
 spring:
   application:
-    name: url-shotener
+    name: url-shortener
   datasource:
     url: jdbc:postgresql://localhost:5432/url_shortener
     username: url_shortener
