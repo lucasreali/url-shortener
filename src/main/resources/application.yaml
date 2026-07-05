@@ -22,4 +22,6 @@ spring:
 app:
   base-url: http://localhost:8080
   short-code:
-    alphabet: QsYBMgUruEzjiotl3AHL1PIqChda42yWN8xKDSkR9mwVp0Gc6XZF57JTbOnfev
+    # Default apenas para desenvolvimento. Em produção defina SQIDS_ALPHABET:
+    # o alfabeto embaralhado é segredo — é o que impede enumerar os códigos sequenciais.
+    alphabet: ${SQIDS_ALPHABET:QsYBMgUruEzjiotl3AHL1PIqChda42yWN8xKDSkR9mwVp0Gc6XZF57JTbOnfev}
