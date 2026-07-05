@@ -1,5 +1,5 @@
 package com.example.urlshotener.infrastructure.adapter.in.web;
 
 
-public record ShortenUrlResponse(String shortCode) {
+public record ShortenUrlResponse(String shortCode, String shortUrl) {
 }

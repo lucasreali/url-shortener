@@ -1,3 +1,6 @@
 spring:
   application:
     name: url-shotener
+
+app:
+  base-url: http://localhost:8080
