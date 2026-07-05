@@ -12,6 +12,6 @@ public record ShortUrl(UUID id, ShortCode shortCode, OriginalUrl originalUrl, In
     }
 
     public static ShortUrl record(ShortCode shortCode, OriginalUrl originalUrl) {
-        return new ShortUrl(UUID.randomUUID(), shortCode, originalUrl, Instant.now());
+        return new ShortUrl(UuidV7.generate(), shortCode, originalUrl, Instant.now());
     }
 }
