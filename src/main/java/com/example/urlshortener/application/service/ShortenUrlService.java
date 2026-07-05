@@ -8,9 +8,6 @@ import com.example.urlshortener.domain.model.ShortCode;
 import com.example.urlshortener.domain.model.ShortUrl;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.UUID;
-
 @Service
 public class ShortenUrlService implements ShortenUrlUseCase {
     private final ShortUrlRepository repository;
@@ -26,10 +23,8 @@ public class ShortenUrlService implements ShortenUrlUseCase {
         OriginalUrl original = new OriginalUrl(originalUrl);
 
         ShortCode shortCode = generator.generate();
-        UUID id = UUID.randomUUID();
-        Instant createdAt = Instant.now();
 
-        ShortUrl shortUrl = new ShortUrl(id, shortCode, original, createdAt);
+        ShortUrl shortUrl = ShortUrl.record(shortCode, original);
 
         return this.repository.add(shortUrl);
     }

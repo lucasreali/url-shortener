@@ -10,4 +10,8 @@ public record ShortUrl(UUID id, ShortCode shortCode, OriginalUrl originalUrl, In
         if (originalUrl == null) throw new IllegalArgumentException("Original URL can't be null");
         if (createdAt == null) throw new IllegalArgumentException("Created at can't be null");
     }
+
+    public static ShortUrl record(ShortCode shortCode, OriginalUrl originalUrl) {
+        return new ShortUrl(UUID.randomUUID(), shortCode, originalUrl, Instant.now());
+    }
 }
