@@ -19,6 +19,8 @@ repositories {
     mavenCentral()
 }
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -41,12 +43,15 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-rabbitmq")
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.mockito:mockito-junit-jupiter")
+    mockitoAgent("org.mockito:mockito-core") { isTransitive = false }
     testImplementation("org.awaitility:awaitility")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Mockito como agente explícito: JDKs futuros vão proibir o self-attach dinâmico.
+    jvmArgs("-javaagent:${mockitoAgent.asPath}")
     finalizedBy(tasks.jacocoTestReport)
 }
 
