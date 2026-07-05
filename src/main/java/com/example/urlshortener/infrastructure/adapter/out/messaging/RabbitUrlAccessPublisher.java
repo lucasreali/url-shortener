@@ -18,6 +18,7 @@ public class RabbitUrlAccessPublisher implements UrlAccessPublisher {
 
     @Override
     public void publish(ShortCode shortCode) {
-        rabbitTemplate.convertAndSend(RabbitMQConfig.URL_ACCESSED_QUEUE, shortCode.value());
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.URL_EVENTS_EXCHANGE, RabbitMQConfig.URL_ACCESSED_ROUTING_KEY, shortCode.value());
     }
 }
