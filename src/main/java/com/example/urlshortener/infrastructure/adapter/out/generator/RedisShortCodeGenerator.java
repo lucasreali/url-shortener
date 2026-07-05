@@ -2,33 +2,31 @@ package com.example.urlshortener.infrastructure.adapter.out.generator;
 
 import com.example.urlshortener.application.port.out.ShortCodeGenerator;
 import com.example.urlshortener.domain.model.ShortCode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import org.sqids.Sqids;
+
+import java.util.List;
 
 @Component
 public class RedisShortCodeGenerator implements ShortCodeGenerator {
 
     private final StringRedisTemplate redisTemplate;
-    private static final String ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private final Sqids sqids;
 
-    public RedisShortCodeGenerator(StringRedisTemplate redisTemplate) {
+    public RedisShortCodeGenerator(
+            StringRedisTemplate redisTemplate,
+            @Value("${app.short-code.alphabet}") String alphabet) {
         this.redisTemplate = redisTemplate;
+        this.sqids = Sqids.builder()
+                .alphabet(alphabet)
+                .minLength(6)
+                .build();
     }
-
     @Override
     public ShortCode generate() {
         Long sequence = redisTemplate.opsForValue().increment("short_url:counter");
-        return new ShortCode(encodeBase62(sequence + 916_132_832L));
-    }
-
-    private String encodeBase62(long number) {
-        StringBuilder encoded = new StringBuilder();
-        while (number > 0) {
-            int remainder = (int) (number % 62);
-            encoded.insert(0, ALPHABET.charAt(remainder));
-            number = number / 62;
-        }
-
-        return encoded.toString();
+        return new ShortCode(sqids.encode(List.of(sequence)));
     }
 }
