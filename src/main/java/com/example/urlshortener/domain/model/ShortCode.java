@@ -7,7 +7,7 @@ public record ShortCode(String value) {
             throw new IllegalArgumentException("Short code can't be null");
         }
 
-        if (!value.matches("^[A-Za-z0-9]{6}$")) {
+        if (!value.matches("^[A-Za-z0-9]{6,10}$")) {
             throw new IllegalArgumentException("Invalid short code: " + value);
         }
     }
