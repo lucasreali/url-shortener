@@ -12,8 +12,9 @@ public record UrlStatsResponse(
     }
 
     public static UrlStatsResponse fromDomain(UrlStats urlStats) {
-        List<DailyClicksResponse> clicksPerDay = urlStats.clicksPerDay()
-                .mapEach(daily -> new DailyClicksResponse(daily.day(), daily.clicks()));
+        List<DailyClicksResponse> clicksPerDay = urlStats.clicksPerDay().days().stream()
+                .map(daily -> new DailyClicksResponse(daily.day(), daily.clicks()))
+                .toList();
 
         return new UrlStatsResponse(
                 urlStats.shortCode().value(),

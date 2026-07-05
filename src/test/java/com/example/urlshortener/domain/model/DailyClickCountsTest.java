@@ -44,15 +44,4 @@ class DailyClickCountsTest {
         assertThrows(UnsupportedOperationException.class,
                 () -> counts.days().add(new DailyClicks(LocalDate.parse("2026-07-07"), 1)));
     }
-
-    @Test
-    void mapsEachDayPreservingOrder() {
-        DailyClickCounts counts = new DailyClickCounts(List.of(
-                new DailyClicks(LocalDate.parse("2026-07-04"), 40),
-                new DailyClicks(LocalDate.parse("2026-07-05"), 2)));
-
-        List<LocalDate> days = counts.mapEach(DailyClicks::day);
-
-        assertEquals(List.of(LocalDate.parse("2026-07-04"), LocalDate.parse("2026-07-05")), days);
-    }
 }
