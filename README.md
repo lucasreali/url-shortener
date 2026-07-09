@@ -16,6 +16,7 @@ A production-grade URL shortener built with **Java 26** and **Spring Boot 4.1**,
 - **Async click tracking** — redirects never wait for analytics: each access is published to RabbitMQ and persisted by a consumer, keeping the hot path fast.
 - **Production-ready messaging** — named direct exchange, explicit bindings, retry with exponential backoff and a dead-letter queue for poison messages.
 - **Cache-aside resolution** — resolved URLs are cached in Valkey with a 24h TTL; the database is only hit on cache misses.
+- **Stateless JWT authentication** — email/password registration and login issuing HS256-signed JWTs via Spring Security's OAuth2 Resource Server. Passwords hashed with BCrypt behind a domain port; redirects stay public so existing links never break.
 - **100% test coverage, enforced** — JaCoCo fails the build below 100% line *and* branch coverage. Integration tests run against real Postgres/Valkey/RabbitMQ via Testcontainers, applying the actual Flyway migrations.
 
 ## Architecture
@@ -34,13 +35,14 @@ flowchart LR
     end
 
     subgraph domain ["Domain"]
-        MODEL["ShortUrl · ShortCode · OriginalUrl<br/>UrlAccess · UrlStats · UuidV7"]
+        MODEL["ShortUrl · ShortCode · OriginalUrl<br/>UrlAccess · UrlStats · UuidV7<br/>User · Email · PasswordHash · AccessToken"]
     end
 
     subgraph outAdapters ["Adapters (out)"]
         PG[("PostgreSQL<br/>JPA + Flyway")]
         VK[("Valkey<br/>cache + counter")]
         MQ[("RabbitMQ<br/>publisher")]
+        SEC[("Security<br/>BCrypt + JWT issuer")]
     end
 
     REST --> UC
@@ -51,6 +53,7 @@ flowchart LR
     OUT --> PG
     OUT --> VK
     OUT --> MQ
+    OUT --> SEC
 ```
 
 - `domain/model` — pure Java records, zero framework dependencies. Invariants live in compact constructors; static factories (`ShortUrl.record(...)`) encapsulate creation decisions such as time-ordered **UUIDv7** primary keys (hand-rolled, version/variant bits included).
@@ -67,6 +70,8 @@ The code also follows **Object Calisthenics** as a pragmatic guideline: wrapped 
 
 **Stats** — `GET /{shortCode}/stats` aggregates clicks per UTC day with a single `GROUP BY` query; the total is derived in the domain from the daily counts.
 
+**Auth** — `POST /auth/register` validates the email in the domain and stores a BCrypt hash (never the raw password). `POST /auth/login` verifies credentials and answers an HS256-signed JWT carrying the user id (`sub`) and email, valid for 1h. Shortening and stats require the token; redirects are public by design.
+
 ## Messaging topology
 
 | Resource | Name | Notes |
@@ -81,8 +86,35 @@ A message that keeps throwing in the consumer is retried 3 times (500ms initial 
 ## API
 
 ```http
+POST /auth/register
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "secret" }
+```
+
+```json
+HTTP/1.1 201 Created
+
+{ "id": "0197c9a2-...", "email": "user@example.com" }
+```
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "secret" }
+```
+
+```json
+HTTP/1.1 200 OK
+
+{ "accessToken": "eyJhbGciOiJIUzI1NiJ9..." }
+```
+
+```http
 POST /shorten
 Content-Type: application/json
+Authorization: Bearer <accessToken>
 
 { "url": "https://example.com/some/long/path" }
 ```
@@ -95,8 +127,8 @@ Location: http://localhost:8080/vS1Ru2
 ```
 
 ```http
-GET /vS1Ru2          → 302 Found, Location: https://example.com/some/long/path
-GET /vS1Ru2/stats    → 200 OK
+GET /vS1Ru2          → 302 Found, Location: https://example.com/some/long/path  (public)
+GET /vS1Ru2/stats    → 200 OK  (requires Bearer token)
 ```
 
 ```json
@@ -111,7 +143,7 @@ GET /vS1Ru2/stats    → 200 OK
 }
 ```
 
-Errors follow **RFC 9457 Problem Details** via `@RestControllerAdvice`: unknown short code → `404`, malformed input → `400`.
+Errors follow **RFC 9457 Problem Details** via `@RestControllerAdvice`: unknown short code → `404`, malformed input → `400`, email already registered → `409`, invalid credentials or missing/expired token → `401`.
 
 ## Testing strategy
 
@@ -141,6 +173,7 @@ Configuration of note:
 | Variable | Purpose | Default |
 |---|---|---|
 | `SQIDS_ALPHABET` | Secret shuffled alphabet for short code encoding. **Set your own in production** — it is what prevents code enumeration. | Dev-only alphabet in `application.yaml` |
+| `JWT_SECRET` | HS256 signing key (min. 32 bytes). **Set your own in production** — whoever holds it can forge tokens. | Dev-only secret in `application.yaml` |
 
 The database schema is versioned with **Flyway** (`src/main/resources/db/migration`); Hibernate runs with `ddl-auto: validate`, so the migrations are the single source of truth.
 
@@ -151,3 +184,6 @@ The database schema is versioned with **Flyway** (`src/main/resources/db/migrati
 - **Direct exchange over topic** — there is exactly one event type with an exact routing key; wildcard routing would be speculative. Migrating to a topic exchange later is additive.
 - **UTC day bucketing for stats** — deterministic and independent of server timezone; the trade-off (a 21h–00h click in UTC-3 counts toward the next day) is acceptable for aggregate analytics.
 - **Total clicks derived from daily counts** — one `GROUP BY` query serves both the total and the per-day series; the domain sums it (`DailyClickCounts.total()`), keeping the endpoint at a single roundtrip.
+- **Framework JWT over hand-rolled filters** — token signing and validation delegated to Spring Security's OAuth2 Resource Server instead of a custom `OncePerRequestFilter`; security-critical code is the last place to reinvent. The application layer only sees `TokenIssuer` and `PasswordHasher` ports — JWT and BCrypt are infrastructure details.
+- **Stateless sessions, CSRF disabled** — the token travels in the `Authorization` header, never in cookies, so CSRF does not apply and no server-side session state is needed.
+- **Uniform login errors** — unknown email and wrong password answer the same `401` message, preventing user enumeration.
