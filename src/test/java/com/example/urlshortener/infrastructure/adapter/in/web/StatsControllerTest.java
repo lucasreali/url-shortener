@@ -7,9 +7,11 @@ import com.example.urlshortener.domain.model.DailyClicks;
 import com.example.urlshortener.domain.model.OriginalUrl;
 import com.example.urlshortener.domain.model.ShortCode;
 import com.example.urlshortener.domain.model.UrlStats;
+import com.example.urlshortener.infrastructure.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,11 +19,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(StatsController.class)
+@Import(SecurityConfig.class)
 class StatsControllerTest {
 
     @Autowired
@@ -39,7 +43,7 @@ class StatsControllerTest {
                         new DailyClicks(LocalDate.parse("2026-07-04"), 40),
                         new DailyClicks(LocalDate.parse("2026-07-05"), 2)))));
 
-        mockMvc.perform(get("/abc123/stats"))
+        mockMvc.perform(get("/abc123/stats").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.shortCode").value("abc123"))
                 .andExpect(jsonPath("$.originalUrl").value("https://example.com"))
@@ -55,7 +59,7 @@ class StatsControllerTest {
         when(getUrlStatsUseCase.get("abc123"))
                 .thenThrow(new ShortUrlNotFoundException(new ShortCode("abc123")));
 
-        mockMvc.perform(get("/abc123/stats"))
+        mockMvc.perform(get("/abc123/stats").with(jwt()))
                 .andExpect(status().isNotFound());
     }
 
@@ -64,7 +68,13 @@ class StatsControllerTest {
         when(getUrlStatsUseCase.get("ab"))
                 .thenThrow(new IllegalArgumentException("Invalid short code: ab"));
 
-        mockMvc.perform(get("/ab/stats"))
+        mockMvc.perform(get("/ab/stats").with(jwt()))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void answersUnauthorizedWithoutToken() throws Exception {
+        mockMvc.perform(get("/abc123/stats"))
+                .andExpect(status().isUnauthorized());
     }
 }

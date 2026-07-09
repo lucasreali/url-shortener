@@ -1,5 +1,7 @@
 package com.example.urlshortener.infrastructure.adapter.in.web;
 
+import com.example.urlshortener.application.exception.EmailAlreadyInUseException;
+import com.example.urlshortener.application.exception.InvalidCredentialsException;
 import com.example.urlshortener.application.exception.ShortUrlNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -17,5 +19,15 @@ public class UrlExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleInvalidArgument(IllegalArgumentException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(EmailAlreadyInUseException.class)
+    public ProblemDetail handleEmailAlreadyInUse(EmailAlreadyInUseException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
     }
 }

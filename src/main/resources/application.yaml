@@ -31,6 +31,10 @@ spring:
 
 app:
   base-url: http://localhost:8080
+  jwt:
+    expires-in: 1h
+    # Default apenas para desenvolvimento. Em produção defina JWT_SECRET (mínimo 32 bytes para HS256).
+    secret: ${JWT_SECRET:change-me-development-only-secret-key!!}
   short-code:
     # Default apenas para desenvolvimento. Em produção defina SQIDS_ALPHABET:
     # o alfabeto embaralhado é segredo — é o que impede enumerar os códigos sequenciais.
